@@ -179,7 +179,13 @@ async function createPage(database_id, key, book_data) {
     let children = [];
 
     for (const highlight of book_data.highlights) {
-        const block = createParagraph(highlight.quote);
+
+        let block;
+        if ("quote" in highlight) {
+            block = createParagraph("Note: " + highlight.quote);
+        } else {
+            block = createParagraph(highlight.note);
+        }
 
         children.push(block);
         children.push(createParagraph(""))
