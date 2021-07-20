@@ -2,7 +2,7 @@
 Export Libby notes and highlights to Notion
 
 ## About
-This is a firebase project where the code is executed via Cloud Functions.
+This is a firebase project where the code is executed via Cloud Functions. This project is currently under development.
 
 ## Installation
 Install Firebase Tools
