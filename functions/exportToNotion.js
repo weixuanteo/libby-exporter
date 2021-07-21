@@ -37,7 +37,7 @@ exports.exportToNotion = functions.region('asia-southeast2').https.onRequest(asy
             property: "object"
         }
     });
-    console.log("search result", search_result);
+    // console.log("search result", search_result);
 
     if (search_result.results.length == 0) {
         const page_result = await notion.search({
@@ -55,7 +55,7 @@ exports.exportToNotion = functions.region('asia-southeast2').https.onRequest(asy
             const create_result = await createDatabase(notion_key, page_result.results[0].id);
             database_obj = create_result.data;
         } catch (err) {
-            res.status(500).send({ status: "error", message: "Failed to create database", data: err})
+            res.status(500).send({ status: "error", message: "Failed to create database", data: err })
         }
     } else {
         database_obj = search_result.results[0];
@@ -72,14 +72,23 @@ exports.exportToNotion = functions.region('asia-southeast2').https.onRequest(asy
         res.status(500).send({ status: "error", data: "Unable to retrieve book data from the given url" });
     }
 
-    const export_result = await createPage(database_obj.id, notion_key, book_data.data)
-    console.log(export_result);
+    const existing_page = await getPageIfExist(notion_key, book_data.data.readingJourney.title.text, book_data.data.readingJourney.author);
+    // console.log(existing_page);
+    let response_data;
 
-    res.json({ status: "success", message: "Successfully exported book highlights to Notion!", data: export_result });
+    if (existing_page && existing_page.id) {
+        console.log("Page already exists!");
+    } else {
+        const export_result = await createPage(database_obj.id, notion_key, book_data.data)
+        console.log(export_result);
+        response_data = export_result;
+    }
+
+    res.json({ status: "success", message: "Successfully exported book highlights to Notion!", data: response_data });
 })
 
 async function createDatabase(key, page_id) {
-    console.log(key, page_id)
+    // console.log(key, page_id)
     const headers = {
         "Authorization": "Bearer " + key,
         "Content-Type": "application/json",
@@ -124,7 +133,7 @@ async function createDatabase(key, page_id) {
                 type: "text",
                 text: {
                     content: "Books",
-                    link: null    
+                    link: null
                 }
             }
         ],
@@ -223,4 +232,31 @@ function createParagraph(content) {
     }
 
     return paragraph;
+}
+
+async function getPageIfExist(key, query, author) {
+    let page_object;
+
+    const notion = new client.Client({
+        auth: key
+    });
+
+    const search_result = await notion.search({
+        query: query,
+        filter: {
+            value: "page",
+            property: "object"
+        }
+    });
+
+    for (const result of search_result.results) {
+        if ("Author" in result.properties
+            && result.properties.Author.rich_text[0].plain_text == author
+            && result.properties.Name.title[0].plain_text == query) {
+                
+            page_object = result;
+        }
+    }
+
+    return page_object;
 }
